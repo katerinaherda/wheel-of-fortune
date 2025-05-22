@@ -16,25 +16,21 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 
-// Typ pro sektor
 type Sector = {
   color: string
   label: string
+  image?: string
 }
 
 const sectors: Sector[] = [
-  { color: '#f82', label: 'Stack' },
-  { color: '#0bf', label: '10' },
-  { color: '#fb0', label: '200' },
-  { color: '#0fb', label: '50' },
-  { color: '#b0f', label: '100' },
-  { color: '#f0b', label: '5' },
-  { color: '#bf0', label: '500' },
-  { color: 'black', label: 'test' },
-  { color: 'blue', label: 'test' },
-  { color: 'green', label: 'test' },
-  { color: 'pink', label: 'test' },
-  { color: 'brown', label: 'test' },
+  { color: '#b0f', label: '100', image: '/images/cat1.png' },
+  { color: '#f0b', label: '5', image: '/images/cat2.png' },
+  { color: '#bf0', label: '500', image: '/images/deer.svg' },
+  { color: '#b0f', label: '100', image: '/images/cat1.png' },
+  { color: '#f0b', label: '5', image: '/images/cat2.png' },
+  { color: '#bf0', label: '500', image: '/images/deer.svg' },
+  { color: '#b0f', label: '100', image: '/images/cat1.png' },
+  { color: '#f0b', label: '5', image: '/images/cat2.png' },
 ]
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -43,7 +39,6 @@ const spinRef = ref<HTMLDivElement | null>(null)
 onMounted(() => {
   const canvas = canvasRef.value
   const spinEl = spinRef.value
-
   if (!canvas || !spinEl) {
     throw new Error('Elementy canvas nebo spin nebyly nalezeny')
   }
@@ -53,77 +48,129 @@ onMounted(() => {
     throw new Error('Nepodařilo se získat 2D context')
   }
 
-  const rand = (m: number, M: number): number => Math.random() * (M - m) + m
+  const rand = (m: number, M: number) => Math.random() * (M - m) + m
+
   const tot = sectors.length
-  const dia = canvas.width
+  const elSpin = document.querySelector('#spin')
+
+  const dia = ctx.canvas.width
+
   const rad = dia / 2
   const PI = Math.PI
   const TAU = 2 * PI
-  const arc = TAU / tot
+  const arc = TAU / sectors.length
+  const friction = 0.991 // 0.995=soft, 0.99=mid, 0.98=hard
+  const angVelMin = 0.002 // Below that number will be treated as a stop
+  let angVelMax = 0 // Random ang.vel. to acceletare to
+  let angVel = 0 // Current angular velocity
+  let ang = 0 // Angle rotation in radians
+  let isSpinning = false
+  let isAccelerating = false
 
-  const friction = 0.991
-  let angVel = 0
-  let ang = 0
-
+  //* Get index of current sector */
   const getIndex = (): number => Math.floor(tot - (ang / TAU) * tot) % tot
 
-  function drawSector(sector: Sector, i: number): void {
-    const ang = arc * i
-    if (ctx) {
+  const loadImage = (
+    ctx: CanvasRenderingContext2D,
+    sector: { image: string },
+    rad: number,
+    rot: number,
+  ) => {
+    const img = new Image()
+    img.onload = function () {
       ctx.save()
-      ctx.beginPath()
-      ctx.fillStyle = sector.color
-      ctx.moveTo(rad, rad)
-      ctx.arc(rad, rad, rad, ang, ang + arc)
-      ctx.lineTo(rad, rad)
-      ctx.fill()
-
+      // Posun na střed kola
       ctx.translate(rad, rad)
-      ctx.rotate(ang + arc / 2)
-      ctx.textAlign = 'right'
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 30px sans-serif'
-      ctx.fillText(sector.label, rad - 10, 10)
+      // Natočení podle sektoru
+      ctx.rotate(rot)
+      // Posun na pozici, kde má být obrázek (např. vzdálenost od středu)
+      const offset = 220
+      ctx.translate(offset, 0)
+      // Otočení obrázku o 90° doleva
+      ctx.rotate(-Math.PI / -2)
+      // Vykreslení obrázku se zarovnáním na střed
+      const imgWidth = 145
+      const imgHeight = 145
+      ctx.drawImage(img, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight)
       ctx.restore()
     }
+    img.src = sector.image
   }
 
-  function rotate(): void {
+  //* Draw sectors and prizes texts to canvas */
+  const drawSector = (sector, i) => {
+    const ang = arc * i
+    // COLOR
+    ctx.beginPath()
+    ctx.fillStyle = sector.color
+    ctx.moveTo(rad, rad)
+    ctx.arc(rad, rad, rad, ang, ang + arc)
+    ctx.lineTo(rad, rad)
+    ctx.fill()
+
+    // TEXT
+    const rot = ang + arc / 2
+    ctx.save()
+    ctx.translate(rad, rad)
+    ctx.rotate(rot)
+    ctx.textAlign = 'right'
+    ctx.fillStyle = '#fff'
+    ctx.font = 'bold 30px sans-serif'
+    ctx.fillText(sector.label, rad - 10, 10)
+
+    // IMG
+    loadImage(ctx, sector, rad, rot)
+
+    ctx.restore()
+  }
+
+  //* CSS rotate CANVAS Element */
+  const rotate = () => {
     const sector = sectors[getIndex()]
-    if (canvas) {
-      canvas.style.transform = `rotate(${ang - PI / 2}rad)`
-    }
-    if (spinEl) {
-      spinEl.textContent = !angVel ? 'SPIN' : sector.label
-      spinEl.style.background = sector.color
-    }
+    ctx.canvas.style.transform = `rotate(${ang - PI / 2}rad)`
+    elSpin.textContent = !angVel ? 'SPIN' : sector.label
+    elSpin.style.background = sector.color
   }
 
-  function frame(): void {
-    if (!angVel) return
-    angVel *= friction
-    if (angVel < 0.002) angVel = 0
-    ang += angVel
-    ang %= TAU
-    rotate()
+  const frame = () => {
+    if (!isSpinning) return
+    if (angVel >= angVelMax) isAccelerating = false
+    // Accelerate
+    if (isAccelerating) {
+      angVel ||= angVelMin // Initial velocity kick
+      angVel *= 1.06 // Accelerate
+    }
+    // Decelerate
+    else {
+      isAccelerating = false
+      angVel *= friction // Decelerate by friction
+      // SPIN END:
+      if (angVel < angVelMin) {
+        isSpinning = false
+        angVel = 0
+      }
+    }
+
+    ang += angVel // Update angle
+    ang %= TAU // Normalize angle
+    rotate() // CSS rotate!
   }
 
-  function engine(): void {
+  const engine = () => {
     frame()
     requestAnimationFrame(engine)
   }
 
-  function init(): void {
-    sectors.forEach(drawSector)
-    rotate()
-    engine()
-    if (spinEl) {
-      spinEl.addEventListener('click', () => {
-        if (!angVel) angVel = rand(0.25, 0.45)
-      })
-    }
-  }
+  elSpin?.addEventListener('click', () => {
+    if (isSpinning) return
+    isSpinning = true
+    isAccelerating = true
+    angVelMax = rand(0.25, 0.4)
+  })
 
-  init()
+  // INIT!
+  sectors.forEach(drawSector)
+  rotate() // Initial rotation
+  engine() // Start engine!
 })
 </script>
