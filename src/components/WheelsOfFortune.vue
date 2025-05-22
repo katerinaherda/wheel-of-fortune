@@ -1,7 +1,15 @@
 <template>
-  <div id="wheelOfFortune">
-    <canvas ref="canvasRef" id="wheel" width="300" height="300"></canvas>
-    <div ref="spinRef" id="spin">SPIN</div>
+  <div class="flex h-full justify-center items-center">
+    <div id="wheelOfFortune">
+      <canvas
+        ref="canvasRef"
+        id="wheel"
+        width="600"
+        height="600"
+        class="w-[300px] h-[300px] lg:w-[600px] lg:h-[600px]"
+      ></canvas>
+      <div ref="spinRef" id="spin">SPIN</div>
+    </div>
   </div>
 </template>
 
@@ -61,28 +69,34 @@ onMounted(() => {
 
   function drawSector(sector: Sector, i: number): void {
     const ang = arc * i
-    ctx.save()
-    ctx.beginPath()
-    ctx.fillStyle = sector.color
-    ctx.moveTo(rad, rad)
-    ctx.arc(rad, rad, rad, ang, ang + arc)
-    ctx.lineTo(rad, rad)
-    ctx.fill()
+    if (ctx) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.fillStyle = sector.color
+      ctx.moveTo(rad, rad)
+      ctx.arc(rad, rad, rad, ang, ang + arc)
+      ctx.lineTo(rad, rad)
+      ctx.fill()
 
-    ctx.translate(rad, rad)
-    ctx.rotate(ang + arc / 2)
-    ctx.textAlign = 'right'
-    ctx.fillStyle = '#fff'
-    ctx.font = 'bold 30px sans-serif'
-    ctx.fillText(sector.label, rad - 10, 10)
-    ctx.restore()
+      ctx.translate(rad, rad)
+      ctx.rotate(ang + arc / 2)
+      ctx.textAlign = 'right'
+      ctx.fillStyle = '#fff'
+      ctx.font = 'bold 30px sans-serif'
+      ctx.fillText(sector.label, rad - 10, 10)
+      ctx.restore()
+    }
   }
 
   function rotate(): void {
     const sector = sectors[getIndex()]
-    canvas.style.transform = `rotate(${ang - PI / 2}rad)`
-    spinEl.textContent = !angVel ? 'SPIN' : sector.label
-    spinEl.style.background = sector.color
+    if (canvas) {
+      canvas.style.transform = `rotate(${ang - PI / 2}rad)`
+    }
+    if (spinEl) {
+      spinEl.textContent = !angVel ? 'SPIN' : sector.label
+      spinEl.style.background = sector.color
+    }
   }
 
   function frame(): void {
@@ -103,9 +117,11 @@ onMounted(() => {
     sectors.forEach(drawSector)
     rotate()
     engine()
-    spinEl.addEventListener('click', () => {
-      if (!angVel) angVel = rand(0.25, 0.45)
-    })
+    if (spinEl) {
+      spinEl.addEventListener('click', () => {
+        if (!angVel) angVel = rand(0.25, 0.45)
+      })
+    }
   }
 
   init()
