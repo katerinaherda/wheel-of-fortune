@@ -1,8 +1,15 @@
 {
-  "name": "zverinec-vue",
-  "version": "0.0.0",
+  "name": "wheel-of-fortune-vue",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
+  "author": "Kateřina Herda",
+  "contributors": [
+    {
+      "name": "Boolean UK",
+      "url": "https://codesandbox.io/p/sandbox/wheel-of-fortune-1475d"
+    }
+  ],
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",

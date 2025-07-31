@@ -1,6 +1,9 @@
-# zverinec-vue
+# wheel-of-fortune-vue
 
-This template should help get you started developing with Vue 3 in Vite.
+## Inspiration and credits
+
+Part of this project is based on [Wheel of Fortune (React)](https://codesandbox.io/p/sandbox/wheel-of-fortune-1475d).
+I adapted and rewrote the original code in Vue.js, including some changes and custom adjustments for my project.
 
 ## Recommended IDE Setup
 
