@@ -23,14 +23,14 @@ type Sector = {
 }
 
 const sectors: Sector[] = [
-  { color: '#b0f', label: '100', image: '/images/cat1.png' },
-  { color: '#f0b', label: '5', image: '/images/cat2.png' },
-  { color: '#bf0', label: '500', image: '/images/deer.svg' },
-  { color: '#b0f', label: '100', image: '/images/cat1.png' },
-  { color: '#f0b', label: '5', image: '/images/cat2.png' },
-  { color: '#bf0', label: '500', image: '/images/deer.svg' },
-  { color: '#b0f', label: '100', image: '/images/cat1.png' },
-  { color: '#f0b', label: '5', image: '/images/cat2.png' },
+  { color: '#ff0099', label: 'giraffe', image: '/images/giraffe.png' },
+  { color: '#a0cde2', label: 'tit', image: '/images/tit.png' },
+  { color: '#00cc00', label: 'octopus', image: '/images/octopus.png' },
+  { color: '#ffcc99', label: 'deer', image: '/images/deer.png' },
+  { color: '#cca9dd', label: 'elephant', image: '/images/elephant.png' },
+  { color: '#f9bdbf', label: 'kitty', image: '/images/kitty.png' },
+  { color: '#ffff33', label: 'dog', image: '/images/dog.png' },
+  { color: '#7be9ff', label: 'dolphin', image: '/images/dolphin.png' },
 ]
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -51,7 +51,7 @@ onMounted(() => {
   const rand = (m: number, M: number) => Math.random() * (M - m) + m
 
   const tot = sectors.length
-  const elSpin = document.querySelector('#spin')
+  const elSpin = document.querySelector('#spin') as HTMLElement
 
   const dia = ctx.canvas.width
 
@@ -72,7 +72,8 @@ onMounted(() => {
 
   const loadImage = (
     ctx: CanvasRenderingContext2D,
-    sector: { image: string },
+    // sector: { image: string },
+    imageSrc: string,
     rad: number,
     rot: number,
   ) => {
@@ -84,23 +85,22 @@ onMounted(() => {
       // Natočení podle sektoru
       ctx.rotate(rot)
       // Posun na pozici, kde má být obrázek (např. vzdálenost od středu)
-      const offset = 220
+      const offset = 225
       ctx.translate(offset, 0)
       // Otočení obrázku o 90° doleva
       ctx.rotate(-Math.PI / -2)
       // Vykreslení obrázku se zarovnáním na střed
-      const imgWidth = 145
-      const imgHeight = 145
+      const imgWidth = 135
+      const imgHeight = 135
       ctx.drawImage(img, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight)
       ctx.restore()
     }
-    img.src = sector.image
+    img.src = imageSrc
   }
 
   //* Draw sectors and prizes texts to canvas */
-  const drawSector = (sector, i) => {
+  const drawSector = (sector: Sector, i: number) => {
     const ang = arc * i
-    // COLOR
     ctx.beginPath()
     ctx.fillStyle = sector.color
     ctx.moveTo(rad, rad)
@@ -108,23 +108,21 @@ onMounted(() => {
     ctx.lineTo(rad, rad)
     ctx.fill()
 
-    // TEXT
     const rot = ang + arc / 2
     ctx.save()
     ctx.translate(rad, rad)
     ctx.rotate(rot)
     ctx.textAlign = 'right'
-    ctx.fillStyle = '#fff'
+    ctx.fillStyle = 'transparent'
     ctx.font = 'bold 30px sans-serif'
-    ctx.fillText(sector.label, rad - 10, 10)
+    ctx.fillText(sector.label, rad - 25, 10)
 
-    // IMG
-    loadImage(ctx, sector, rad, rot)
-
+    if (sector.image) {
+      loadImage(ctx, sector.image, rad, rot)
+    }
     ctx.restore()
   }
 
-  //* CSS rotate CANVAS Element */
   const rotate = () => {
     const sector = sectors[getIndex()]
     ctx.canvas.style.transform = `rotate(${ang - PI / 2}rad)`
@@ -135,7 +133,6 @@ onMounted(() => {
   const frame = () => {
     if (!isSpinning) return
     if (angVel >= angVelMax) isAccelerating = false
-    // Accelerate
     if (isAccelerating) {
       angVel ||= angVelMin // Initial velocity kick
       angVel *= 1.06 // Accelerate
@@ -153,7 +150,7 @@ onMounted(() => {
 
     ang += angVel // Update angle
     ang %= TAU // Normalize angle
-    rotate() // CSS rotate!
+    rotate() // CSS rotate
   }
 
   const engine = () => {
